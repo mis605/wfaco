@@ -1,0 +1,49 @@
+{
+  "name": "Absen WFA - Sistem Kehadiran",
+  "short_name": "Absen WFA",
+  "description": "Sistem absensi Work From Anywhere dengan Microsoft 365",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0f12",
+  "theme_color": "#0d0f12",
+  "orientation": "portrait",
+  "lang": "id",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Absen Masuk",
+      "short_name": "Masuk",
+      "description": "Langsung ke absen masuk",
+      "url": "/?action=masuk",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Absen Keluar",
+      "short_name": "Keluar",
+      "description": "Langsung ke absen keluar",
+      "url": "/?action=keluar",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": []
+}
