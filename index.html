@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0f12">
+  <meta name="description" content="Sistem Absensi WFA Karyawan berbasis Microsoft 365">
+  
+  <!-- PWA Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Absen WFA">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- MSAL.js dari CDN (wajib, tidak perlu npm) -->
+  <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"
+          crossorigin="anonymous"
+          integrity="sha384-VyTGsLzKRX2bkLbJ8XZ4mFfbUj9OUP8Rz0MoAWXNe3DxCZiIqVVWGcRlMf3x5W"
+          onerror="this.removeAttribute('integrity'); console.warn('MSAL integrity check failed, loading without SRI')"></script>
+
+  <title>Absen WFA</title>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ========== TOAST CONTAINER ========== -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- ========== VIEW: LOADING ========== -->
+  <div id="view-loading">
+    <div class="loading-ring"></div>
+    <p id="loading-text">Memulai aplikasi...</p>
+  </div>
+
+  <!-- ========== VIEW: LOGIN ========== -->
+  <div id="view-login" class="hidden">
+    <div class="login-logo" aria-hidden="true">🏢</div>
+    <h1 class="login-title">Absen WFA</h1>
+    <p class="login-subtitle">Sistem Kehadiran Work From Anywhere</p>
+    <p class="company-name" id="company-name">PT. Nama Perusahaan</p>
+
+    <button id="btn-login" class="btn-ms-login">
+      <!-- Microsoft Logo SVG -->
+      <svg viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Masuk dengan Microsoft 365
+    </button>
+
+    <p class="login-note">
+      Gunakan akun Microsoft 365 perusahaan Anda untuk masuk.
+      Data absensi tersimpan aman di Excel Online organisasi Anda.
+    </p>
+
+    <div id="login-error" class="error-msg hidden"></div>
+  </div>
+
+  <!-- ========== APP SHELL (setelah login) ========== -->
+  <div id="app-shell" class="hidden">
+    
+    <!-- Top Bar -->
+    <header class="topbar">
+      <span class="topbar__logo">Absen<span>WFA</span></span>
+      <div class="topbar__actions">
+        <div class="user-avatar" id="topbar-avatar" title="Profil saya"></div>
+        <button class="btn-icon" id="btn-logout" title="Keluar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- ===== DASHBOARD ===== -->
+      <section id="view-dashboard" class="hidden">
+        
+        <!-- Greeting Card -->
+        <div class="greeting-card">
+          <div class="greeting-top">
+            <div class="user-avatar greeting-avatar" id="dash-avatar"></div>
+            <div class="greeting-info">
+              <h2 id="dash-nama">Nama Karyawan</h2>
+              <p id="dash-jabatan">Jabatan • Departemen</p>
+            </div>
+          </div>
+          <div class="live-clock" id="live-clock">--:--:--</div>
+          <div class="tanggal-text" id="dash-tanggal">Hari, Tanggal</div>
+        </div>
+
+        <!-- Status Hari Ini -->
+        <div class="today-card">
+          <div class="today-card__header">
+            <span class="today-card__title">Status Hari Ini</span>
+            <span class="status-badge" id="dash-status">Belum Absen</span>
+          </div>
+          <div class="stat-row">
+            <div class="stat-card">
+              <div class="stat-card__label">Masuk</div>
+              <div class="stat-card__value" id="dash-masuk">--:--</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__label">Keluar</div>
+              <div class="stat-card__value" id="dash-keluar">--:--</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__label">Durasi</div>
+              <div class="stat-card__value" id="dash-durasi">--</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tombol Absen -->
+        <div class="absen-btns">
+          <button class="btn-absen btn-absen--masuk" id="btn-absen-masuk">
+            <span class="btn-absen__icon">🟢</span>
+            Absen Masuk
+          </button>
+          <button class="btn-absen btn-absen--keluar btn--disabled" id="btn-absen-keluar" disabled>
+            <span class="btn-absen__icon">🔴</span>
+            Absen Keluar
+          </button>
+        </div>
+
+        <!-- Info jam absen -->
+        <div class="today-card" style="margin-bottom: 0;">
+          <div class="today-card__title" style="margin-bottom: 10px; display:block;">Jam Absensi</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.82rem; color:var(--text-secondary);">
+            <div>🕗 Masuk: <strong id="info-jam-masuk" style="color:var(--green)">07:00–10:00</strong></div>
+            <div>🕔 Keluar: <strong id="info-jam-keluar" style="color:var(--purple)">16:00–20:00</strong></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===== RIWAYAT ===== -->
+      <section id="view-riwayat" class="hidden">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Riwayat Absensi</h2>
+            <p class="section-sub">Bulan ini</p>
+          </div>
+          <span class="status-badge status--pending" id="riwayat-total">0 hari</span>
+        </div>
+        <div id="riwayat-list">
+          <p class="empty-state">Pilih menu untuk memuat data.</p>
+        </div>
+      </section>
+
+      <!-- ===== REKAP (Admin) ===== -->
+      <section id="view-rekap" class="hidden">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Rekap Absensi</h2>
+            <p class="section-sub" id="rekap-periode">-</p>
+          </div>
+          <button class="btn-sm" id="btn-export-csv">↓ CSV</button>
+        </div>
+        <div class="search-bar">
+          <input type="search" class="search-input" id="rekap-search" 
+                 placeholder="Cari nama / NIP...">
+        </div>
+        <div class="table-wrapper">
+          <table class="rekap-table">
+            <thead>
+              <tr>
+                <th>NIP</th>
+                <th>Nama</th>
+                <th>Tanggal</th>
+                <th>Masuk</th>
+                <th>Keluar</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="rekap-tbody">
+              <tr><td colspan="6" class="loading-cell">Pilih menu untuk memuat.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== KARYAWAN (Admin) ===== -->
+      <section id="view-karyawan" class="hidden">
+        <div class="section-header">
+          <h2 class="section-title">Data Karyawan</h2>
+        </div>
+        <div id="karyawan-list">
+          <p class="empty-state">Pilih menu untuk memuat.</p>
+        </div>
+      </section>
+
+    </main><!-- end main-content -->
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav__item nav__item--active" data-nav="dashboard">
+        <div class="nav__icon">🏠</div>
+        <span>Beranda</span>
+      </button>
+      <button class="nav__item" data-nav="riwayat">
+        <div class="nav__icon">📋</div>
+        <span>Riwayat</span>
+      </button>
+      <button class="nav__item" data-nav="rekap">
+        <div class="nav__icon">📊</div>
+        <span>Rekap</span>
+      </button>
+      <button class="nav__item" data-nav="karyawan">
+        <div class="nav__icon">👥</div>
+        <span>Karyawan</span>
+      </button>
+    </nav>
+
+    <!-- FAB tambah karyawan -->
+    <button class="fab hidden" id="btn-tambah-karyawan" title="Tambah Karyawan">+</button>
+
+  </div><!-- end app-shell -->
+
+</div><!-- end #app -->
+
+<!-- ========== MODAL ABSEN ========== -->
+<div id="modal-absen" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-absen-title">
+  <div class="modal__sheet">
+    <div class="modal__handle"></div>
+    <div class="modal__header">
+      <h2 class="modal__title" id="modal-absen-title">Absen Masuk</h2>
+      <button class="btn-icon" id="btn-close-modal" aria-label="Tutup">✕</button>
+    </div>
+
+    <!-- Camera -->
+    <div class="camera-wrapper">
+      <video id="camera-video" autoplay muted playsinline></video>
+      <img id="foto-preview" class="hidden" alt="Foto selfie Anda">
+      <div class="camera-overlay">
+        <div class="camera-frame"></div>
+      </div>
+    </div>
+    <canvas id="capture-canvas"></canvas>
+
+    <!-- Location -->
+    <p class="loc-info" id="loc-info">📍 Mendapatkan lokasi...</p>
+
+    <!-- Camera buttons -->
+    <div class="camera-actions">
+      <button class="btn-secondary" id="btn-capture">📷 Ambil Foto</button>
+      <button class="btn-secondary hidden" id="btn-retake">🔄 Ulangi</button>
+    </div>
+
+    <!-- Keterangan -->
+    <div class="form-group">
+      <label for="absen-keterangan" class="form-label">Keterangan (opsional)</label>
+      <textarea id="absen-keterangan" class="form-textarea" 
+                placeholder="Contoh: WFH dari rumah, koneksi stabil..."></textarea>
+    </div>
+
+    <!-- Submit -->
+    <button class="btn-primary" id="btn-submit-absen" disabled>
+      Absen Sekarang
+    </button>
+  </div>
+</div>
+
+<!-- ========== MODAL TAMBAH KARYAWAN ========== -->
+<div id="modal-karyawan" class="modal-karyawan hidden" role="dialog" aria-modal="true">
+  <div class="modal-karyawan__content">
+    <div class="modal__header" style="margin-bottom:20px;">
+      <h2 class="modal__title">Tambah Karyawan</h2>
+      <button class="btn-icon" id="btn-close-karyawan">✕</button>
+    </div>
+    
+    <form id="form-karyawan" onsubmit="return false;">
+      <div class="form-group">
+        <label class="form-label">NIP *</label>
+        <input type="text" id="k-nip" class="form-input" placeholder="Contoh: 20240001" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap *</label>
+        <input type="text" id="k-nama" class="form-input" placeholder="Nama lengkap karyawan" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Microsoft 365 *</label>
+        <input type="email" id="k-email" class="form-input" placeholder="nama@perusahaan.com" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Departemen</label>
+        <input type="text" id="k-departemen" class="form-input" placeholder="Contoh: Engineering">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Jabatan</label>
+        <input type="text" id="k-jabatan" class="form-input" placeholder="Contoh: Software Engineer">
+      </div>
+      <button type="button" class="btn-primary" id="btn-simpan-karyawan">Simpan</button>
+    </form>
+  </div>
+</div>
+
+<!-- ========== SCRIPTS ========== -->
+<script type="module" src="js/app.js"></script>
+
+<script>
+  // Tampilkan nama perusahaan dari config
+  // (akan diupdate setelah config.js load)
+  document.addEventListener('DOMContentLoaded', () => {
+    // Fallback jika module belum load
+    setTimeout(() => {
+      try {
+        const companyEl = document.getElementById('company-name');
+        if (companyEl && typeof APP_CONFIG !== 'undefined') {
+          companyEl.textContent = APP_CONFIG.namaPerusahaan;
+        }
+      } catch(e) {}
+    }, 500);
+  });
+
+  // App shell toggle helper
+  function showAppShell(show) {
+    const shell = document.getElementById('app-shell');
+    if (shell) shell.classList.toggle('hidden', !show);
+  }
+
+  // Register Service Worker untuk PWA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.warn('SW registration failed:', err));
+    });
+  }
+</script>
+
+</body>
+</html>
