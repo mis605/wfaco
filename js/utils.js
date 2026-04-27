@@ -37,7 +37,7 @@ class CameraService {
     }
   }
 
-  capturePhoto(videoElement, canvasElement) {
+  capturePhoto(videoElement, canvasElement, watermarkData = null) {
     const video = videoElement || this.videoEl;
     if (!video) throw new Error('Video element tidak tersedia');
 
@@ -54,6 +54,30 @@ class CameraService {
     
     // Kembalikan transform
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    // Tambahkan watermark jika ada
+    if (watermarkData) {
+      // Kotak background transparan
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+      
+      // Teks watermark
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'right';
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 4;
+      
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(watermarkData.timestamp, canvas.width - 15, canvas.height - 28);
+      
+      ctx.font = '12px sans-serif';
+      // Membatasi panjang teks lokasi agar tidak meluber
+      let locText = watermarkData.location;
+      if (locText.length > 70) locText = locText.substring(0, 67) + '...';
+      ctx.fillText(locText, canvas.width - 15, canvas.height - 10);
+      
+      ctx.shadowBlur = 0;
+    }
     
     // Kompres ke JPEG base64 (kualitas 0.7 untuk ukuran file lebih kecil)
     return canvas.toDataURL('image/jpeg', 0.7);

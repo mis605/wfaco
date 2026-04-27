@@ -48,6 +48,29 @@ class GraphService {
     return response.json();
   }
 
+  // Helper: Normalisasi format tanggal apapun dari Excel menjadi YYYY-MM-DD
+  normalizeExcelDate(excelDate) {
+    if (!excelDate) return '';
+    const str = String(excelDate).trim();
+    
+    // Sudah YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.substring(0, 10);
+    
+    // Excel Serial Number (e.g. 45409)
+    if (!isNaN(str) && Number(str) > 40000) {
+      const d = new Date((Number(str) - 25569) * 86400 * 1000);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    
+    // Format MM/DD/YYYY atau lainnya
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    
+    return str.substring(0, 10);
+  }
+
   // ============================================================
   // EXCEL TABLE OPERATIONS
   // ============================================================
@@ -248,14 +271,13 @@ class GraphService {
   // ============================================================
 
   async getAbsensiHariIni(nip) {
-    const today = new Date().toLocaleDateString('id-ID', {
-      year: 'numeric', month: '2-digit', day: '2-digit'
-    }).split('/').reverse().join('-');
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     
     const rows = await this.getTableRows(APP_CONFIG.tableAbsensi);
     const found = rows.find(row => {
       const rowNip = String(row.values[0][1]);
-      const rowTgl = String(row.values[0][3]).substring(0, 10);
+      const rowTgl = this.normalizeExcelDate(row.values[0][3]);
       return rowNip === String(nip) && rowTgl === today;
     });
     
@@ -271,8 +293,8 @@ class GraphService {
     return rows
       .filter(row => {
         const rowNip = String(row.values[0][1]);
-        const rowTgl = String(row.values[0][3]).substring(0, 7);
-        return rowNip === String(nip) && rowTgl === bulanIni;
+        const rowTgl = this.normalizeExcelDate(row.values[0][3]);
+        return rowNip === String(nip) && rowTgl.startsWith(bulanIni);
       })
       .map((row, i) => this.rowToAbsensi(row, i));
   }
@@ -281,7 +303,10 @@ class GraphService {
     const prefix = `${tahun}-${String(bulan).padStart(2,'0')}`;
     const rows = await this.getTableRows(APP_CONFIG.tableAbsensi);
     return rows
-      .filter(row => String(row.values[0][3]).startsWith(prefix))
+      .filter(row => {
+        const rowTgl = this.normalizeExcelDate(row.values[0][3]);
+        return rowTgl.startsWith(prefix);
+      })
       .map((row, i) => this.rowToAbsensi(row, i));
   }
 
@@ -292,7 +317,7 @@ class GraphService {
     
     const id = `ABS-${Date.now()}`;
     const now = new Date();
-    const tanggal = now.toISOString().split('T')[0];
+    const tanggal = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
     const jamMasuk = now.toTimeString().substring(0, 8);
     
     // Tentukan status ketepatan waktu

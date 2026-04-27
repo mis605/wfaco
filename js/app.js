@@ -332,7 +332,18 @@ function capturePhoto() {
   
   try {
     const canvas = document.getElementById('capture-canvas');
-    state.fotoCaptured = state.camera.capturePhoto(videoEl, canvas);
+    
+    // Siapkan data watermark
+    const now = new Date();
+    const timestampStr = now.toLocaleDateString('id-ID', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    }) + ' ' + now.toLocaleTimeString('id-ID');
+    const locText = document.getElementById('loc-info').textContent.replace('📍 ', '');
+    
+    state.fotoCaptured = state.camera.capturePhoto(videoEl, canvas, {
+      timestamp: timestampStr,
+      location: locText
+    });
     
     preview.src = state.fotoCaptured;
     preview.classList.remove('hidden');
