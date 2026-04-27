@@ -51,24 +51,50 @@ class GraphService {
   // Helper: Normalisasi format tanggal apapun dari Excel menjadi YYYY-MM-DD
   normalizeExcelDate(excelDate) {
     if (!excelDate) return '';
-    const str = String(excelDate).trim();
+    const str = String(excelDate).trim().split(' ')[0]; // Ambil tanggalnya saja jika ada jam
     
     // Sudah YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.substring(0, 10);
     
     // Excel Serial Number (e.g. 45409)
-    if (!isNaN(str) && Number(str) > 40000) {
+    if (!isNaN(str) && Number(str) > 30000) {
       const d = new Date((Number(str) - 25569) * 86400 * 1000);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
     
-    // Format MM/DD/YYYY atau lainnya
-    const d = new Date(str);
-    if (!isNaN(d.getTime())) {
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    // Format DD/MM/YYYY atau MM/DD/YYYY atau DD-MM-YYYY
+    const parts = str.split(/[-/]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) { // YYYY-MM-DD
+        return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+      } else if (Number(parts[0]) > 12) { // Pasti DD/MM/YYYY
+        return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+      } else if (Number(parts[1]) > 12) { // Pasti MM/DD/YYYY
+        return `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+      } else {
+        // Ambigu (misal 04/05/2026). Asumsikan format Indonesia (DD/MM/YYYY)
+        return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+      }
     }
     
     return str.substring(0, 10);
+  }
+
+  // Helper: Normalisasi Jam dari Excel (Fraction of day atau Text)
+  normalizeExcelTime(excelTime) {
+    if (!excelTime) return '';
+    const str = String(excelTime).trim();
+    
+    // Jika berupa number / pecahan hari dari Excel (e.g. 0.456)
+    if (!isNaN(str) && Number(str) > 0 && Number(str) < 1) {
+      const totalSeconds = Math.round(Number(str) * 86400);
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    }
+    
+    // Jika sudah teks HH:MM(:SS)
+    return str.substring(0, 5);
   }
 
   // ============================================================
@@ -392,8 +418,13 @@ class GraphService {
     const v = row.values[0];
     return {
       rowIndex: index,
-      id: v[0], nip: v[1], nama: v[2], tanggal: v[3],
-      jamMasuk: v[4], jamKeluar: v[5], status: v[6],
+      id: v[0], 
+      nip: v[1], 
+      nama: v[2], 
+      tanggal: this.normalizeExcelDate(v[3]),
+      jamMasuk: this.normalizeExcelTime(v[4]), 
+      jamKeluar: this.normalizeExcelTime(v[5]), 
+      status: v[6],
       fotoMasuk: v[7], fotoKeluar: v[8],
       latMasuk: v[9], lngMasuk: v[10],
       latKeluar: v[11], lngKeluar: v[12],
