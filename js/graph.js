@@ -97,6 +97,12 @@ class GraphService {
     return str.substring(0, 5);
   }
 
+  // Helper: Timestamp Lokal (WIB) YYYY-MM-DD HH:mm:ss
+  getLocalTimestamp() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+  }
+
   // ============================================================
   // EXCEL TABLE OPERATIONS
   // ============================================================
@@ -266,7 +272,7 @@ class GraphService {
     const values = [
       id, data.nip, data.nama, data.email,
       data.departemen, data.jabatan, 'Aktif',
-      data.fotoProfil || '', new Date().toISOString()
+      data.fotoProfil || '', this.getLocalTimestamp()
     ];
     await this.addTableRow(APP_CONFIG.tableKaryawan, values);
     return id;
@@ -364,7 +370,7 @@ class GraphService {
       '',          // Lat keluar
       '',          // Lng keluar
       data.keterangan || '',
-      now.toISOString()
+      this.getLocalTimestamp()
     ];
     
     await this.addTableRow(APP_CONFIG.tableAbsensi, values);
