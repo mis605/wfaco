@@ -107,6 +107,15 @@ async function loadUserSession() {
     // Ambil profil MS
     state.user = await authService.getUserProfile();
     
+    // Pastikan sheet dan tabel Excel sudah dibuat (mencegah error 404)
+    try {
+      document.getElementById('loading-text').textContent = 'Menyiapkan database...';
+      await graphService.initializeExcelFile();
+    } catch (e) {
+      console.warn('Gagal inisialisasi Excel:', e);
+    }
+    
+    document.getElementById('loading-text').textContent = 'Memuat data karyawan...';
     // Cek data karyawan
     state.karyawan = await graphService.getKaryawanByEmail(state.user.mail || state.user.userPrincipalName);
     

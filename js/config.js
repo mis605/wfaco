@@ -6,8 +6,8 @@
 const APP_CONFIG = {
   // --- AZURE AD APP REGISTRATION ---
   // Daftar di: https://portal.azure.com > App registrations
-  clientId: "GANTI_DENGAN_CLIENT_ID_AZURE_APP",
-  tenantId: "GANTI_DENGAN_TENANT_ID_AZURE",
+  clientId: "efa1afcc-0850-4433-a107-bec0fd0ee282",
+  tenantId: "5194178e-ce02-4b0c-8442-1374fd7eca0d",
   
   // Redirect URI harus sama persis dengan yang didaftarkan di Azure AD
   // Contoh: https://namadomain.github.io/absen-wfa/ atau http://localhost:3000
@@ -25,7 +25,7 @@ const APP_CONFIG = {
   
   // ID file Excel (.xlsx) di OneDrive
   // GET /v1.0/me/drive/root/children untuk list file
-  excelFileId: "GANTI_DENGAN_FILE_ID_EXCEL",
+  excelFileId: "01MWV7VZECUI3NL44YBJA262HMINENFME4",
   
   // Jika menggunakan SharePoint (ubah driveType ke "site"):
   // siteId: "GANTI_DENGAN_SITE_ID",
@@ -59,7 +59,7 @@ const APP_CONFIG = {
   fotoWajib: true,
   
   // Nama perusahaan
-  namaPerusahaan: "PT. Nama Perusahaan Anda",
+  namaPerusahaan: "PT. GOS INDORAYA",
   logoPerusahaan: "", // URL logo (opsional)
 };
 
