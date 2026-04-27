@@ -387,10 +387,10 @@ async function submitAbsen() {
   setLoading(btn, true);
   
   try {
-    // Kompres foto
+    // Kompres foto dengan kualitas proporsional (800px, quality 0.8)
     let fotoBase64 = state.fotoCaptured;
     if (fotoBase64) {
-      fotoBase64 = await CameraService.compressImage(fotoBase64, 400, 0.6);
+      fotoBase64 = await CameraService.compressImage(fotoBase64, 800, 0.8);
     }
     
     const payload = {
@@ -429,15 +429,29 @@ async function submitAbsen() {
 // ============================================================
 // RIWAYAT ABSENSI
 // ============================================================
-async function loadRiwayat() {
-  const { bulan, tahun } = getMonthYear();
+let currentRiwayatDate = new Date(); // bulan yang sedang ditampilkan
+
+async function loadRiwayat(offset = 0) {
+  if (offset !== 0) {
+    currentRiwayatDate = new Date(
+      currentRiwayatDate.getFullYear(),
+      currentRiwayatDate.getMonth() + offset,
+      1
+    );
+  }
+  const bulan = currentRiwayatDate.getMonth() + 1;
+  const tahun = currentRiwayatDate.getFullYear();
+  const labelBulan = currentRiwayatDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  
   const listEl = document.getElementById('riwayat-list');
   const totalEl = document.getElementById('riwayat-total');
+  const periodeEl = document.getElementById('riwayat-periode');
+  if (periodeEl) periodeEl.textContent = labelBulan;
   
   listEl.innerHTML = '<div class="skeleton-list"></div>';
   
   try {
-    state.absensiHistory = await graphService.getAbsensiBulanIni(state.karyawan.nip);
+    state.absensiHistory = await graphService.getAbsensiBulanTertentu(state.karyawan.nip, bulan, tahun);
     renderRiwayatList(state.absensiHistory);
     totalEl.textContent = `${state.absensiHistory.length} hari`;
   } catch (err) {
@@ -679,6 +693,19 @@ function bindEvents() {
   // Rekap filter
   document.getElementById('rekap-search')?.addEventListener('input', filterRekap);
   document.getElementById('btn-export-csv')?.addEventListener('click', exportCSV);
+  
+  // Navigasi bulan riwayat
+  document.getElementById('btn-riwayat-prev')?.addEventListener('click', () => loadRiwayat(-1));
+  document.getElementById('btn-riwayat-next')?.addEventListener('click', () => {
+    const now = new Date();
+    const isCurrentMonth = currentRiwayatDate.getFullYear() === now.getFullYear()
+      && currentRiwayatDate.getMonth() === now.getMonth();
+    if (isCurrentMonth) {
+      showToast('Sudah di bulan ini.', 'info');
+      return;
+    }
+    loadRiwayat(1);
+  });
   
   // Karyawan
   document.getElementById('btn-tambah-karyawan')?.addEventListener('click', () => {

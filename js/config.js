@@ -78,7 +78,7 @@ const MSAL_CONFIG = {
     redirectUri: APP_CONFIG.redirectUri,
   },
   cache: {
-    cacheLocation: "sessionStorage",
+    cacheLocation: "localStorage",
     storeAuthStateInCookie: false,
   },
   system: {

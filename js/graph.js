@@ -103,8 +103,14 @@ class GraphService {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
   }
 
-  // ============================================================
-  // EXCEL TABLE OPERATIONS
+  // Helper: Cek apakah waktu sekarang dalam rentang yang diizinkan
+  isWithinTimeRange(startHHMM, endHHMM) {
+    const now = new Date();
+    const menitSekarang = now.getHours() * 60 + now.getMinutes();
+    const [sh, sm] = startHHMM.split(':').map(Number);
+    const [eh, em] = endHHMM.split(':').map(Number);
+    return menitSekarang >= sh * 60 + sm && menitSekarang <= eh * 60 + em;
+  }
   // ============================================================
 
   // Baca semua baris dari tabel Excel
@@ -319,7 +325,11 @@ class GraphService {
 
   async getAbsensiBulanIni(nip) {
     const now = new Date();
-    const bulanIni = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    return this.getAbsensiBulanTertentu(nip, now.getMonth() + 1, now.getFullYear());
+  }
+
+  async getAbsensiBulanTertentu(nip, bulan, tahun) {
+    const bulanIni = `${tahun}-${String(bulan).padStart(2,'0')}`;
     
     const rows = await this.getTableRows(APP_CONFIG.tableAbsensi);
     return rows
@@ -343,6 +353,13 @@ class GraphService {
   }
 
   async absenMasuk(data) {
+    // Validasi jam absen masuk
+    if (!this.isWithinTimeRange(APP_CONFIG.jamMasukMulai, APP_CONFIG.jamMasukSelesai)) {
+      const [eh, em] = APP_CONFIG.jamMasukSelesai.split(':');
+      const [sh, sm] = APP_CONFIG.jamMasukMulai.split(':');
+      throw new Error(`Absen masuk hanya bisa dilakukan antara ${sh}:${sm} – ${eh}:${em}.`);
+    }
+    
     // Cek apakah sudah absen hari ini
     const existing = await this.getAbsensiHariIni(data.nip);
     if (existing) throw new Error('Anda sudah melakukan absen masuk hari ini.');
@@ -378,6 +395,12 @@ class GraphService {
   }
 
   async absenKeluar(data) {
+    // Validasi jam absen keluar
+    if (!this.isWithinTimeRange(APP_CONFIG.jamKeluarMulai, APP_CONFIG.jamKeluarSelesai)) {
+      const [sh, sm] = APP_CONFIG.jamKeluarMulai.split(':');
+      throw new Error(`Absen keluar hanya bisa dilakukan mulai pukul ${sh}:${sm}.`);
+    }
+    
     const existing = await this.getAbsensiHariIni(data.nip);
     if (!existing) throw new Error('Anda belum melakukan absen masuk hari ini.');
     if (existing.jamKeluar) throw new Error('Anda sudah melakukan absen keluar hari ini.');
