@@ -606,6 +606,18 @@ body {
   color: var(--text-secondary);
 }
 
+/* Month navigation (Riwayat prev/next) */
+.month-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.month-nav .btn-sm {
+  flex: 1;
+  text-align: center;
+}
+
 /* ============================================================
    RIWAYAT CARDS
    ============================================================ */
