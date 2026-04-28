@@ -11,7 +11,7 @@ const APP_CONFIG = {
   
   // Redirect URI harus sama persis dengan yang didaftarkan di Azure AD
   // Contoh: https://namadomain.github.io/absen-wfa/ atau http://localhost:3000
-  redirectUri: window.location.origin + window.location.pathname,
+  redirectUri: window.location.origin // + window.location.pathname,
 
   // --- EXCEL FILE CONFIG ---
   // Cara mendapatkan driveId & fileId:
